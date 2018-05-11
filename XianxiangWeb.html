@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>咸祥中学</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel="stylesheet" href="css/webgl_sprite3.css" />
+		<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+
+		<script src="js/three.js"></script>
+		<script src="js/Tween.js"></script>
+	</head>
+
+	<body>
+		<script src="//wximg.qq.com/wxp/libs/wxmoment/0.0.4/wxmoment.min.js"></script>
+			
+			<div id="threejsContainer">
+		
+			</div>
+			<div id="context">
+				<div id="left">
+					<img id="textimage" src="img/title.png">						
+				</div>
+				
+				<div id="right">					
+					<img id="mainImage" src="img/text.png">
+				</div>
+
+		</div>
+					
+		<script>
+			//=========旋屏提示=========
+			var ot = new WxMoment.OrientationTip();
+			var standardHeight = 250;
+			var scale = 1;
+			
+			//自适应
+			$(document).ready(function() {
+				if(window.innerHeight/window.innerWidth>1.85){
+					scale = 0.65;
+				}
+				var threejsContainerWidth = $("#threejsContainer").width();
+				var threejsContainerHeight = threejsContainerWidth/9*10;
+				$("#threejsContainer").css("height",threejsContainerHeight);
+				var contextHeight = window.innerHeight - threejsContainerHeight;
+				$("#context").css("height",contextHeight);	
+				var heightscale = contextHeight/standardHeight;
+	
+				var leftmarginTop= 25*heightscale;
+				var weightscale = threejsContainerWidth/375;
+				var leftmarginLeft = 25*weightscale;
+				var leftWidth = threejsContainerWidth/5*2.2;
+				$("#left").css("height",contextHeight);
+				$("#left").css("width",leftWidth);
+				
+				$("#right").css("width",threejsContainerWidth-leftWidth);	
+				$("#right").css("height",contextHeight);	
+				
+				var textImageHeight = 48*heightscale/1.5*scale;
+				var textImageWeight = heightscale*191/1.5*scale;
+				$("#textimage").css("width",textImageWeight);
+				$("#textimage").css("height",textImageHeight);
+				$("#textimage").css("margin-top",(contextHeight-textImageHeight)/2);
+				$("#textimage").css("margin-left",(leftWidth-textImageWeight)/2);
+				
+				var mainImageHeight = 128*heightscale*1.4*scale;
+				var mainImageWidth = 147*heightscale*1.4*scale;
+
+				$("#mainImage").css("width",mainImageWidth);
+				$("#mainImage").css("margin-top",(contextHeight-mainImageHeight)/2);
+				init();
+				animate();
+			});
+			var camera, scene, renderer;
+			var cameraOrtho, sceneOrtho;
+
+			var twoSprite, threeSprite, smileSprite, shoeSprite, lockSprite, clawSprite, totchSprite,peopleSprite,kuangSprite;
+			var oneSprite,twoSprite,threeSprite,fourSprite,fiveSprite,sixSprite;
+			var raycasterUI = new THREE.Raycaster();
+			var mouse = new THREE.Vector2();
+
+			var mapC;
+			var ismove;
+			var isreturn;
+			var movePos;
+			var canHeight;
+			var canWeight;
+
+			function init() {
+				canHeight = document.getElementById('threejsContainer').clientHeight;
+				canWeight = document.getElementById('threejsContainer').clientWidth;
+//				console.log("canHeight="+canHeight+",canWeight="+canWeight);
+				camera = new THREE.PerspectiveCamera(60, 1, 1, 2100);
+				camera.position.z = 1000;
+
+				scene = new THREE.Scene();
+				sceneOrtho = new THREE.Scene();
+
+				var amount = 200;
+				var radius = 500;
+
+				var textureLoader = new THREE.TextureLoader();
+				var first = textureLoader.load("img/xianzhong/bg.jpg", createFirstSpritess);
+				var two = textureLoader.load("img/xianzhong/door.png", createdTwoSprite);
+				var three = textureLoader.load("img/xianzhong/classroom.png", createsThreeSprites);
+//				var shoe = textureLoader.load(fileList[6], createShoeSprites);
+//				var lock = textureLoader.load(fileList[4], createLockSprites);
+//				var claw = textureLoader.load(fileList[5], createClawSprites);
+//				var torch = textureLoader.load(fileList[7], createTorchSprites);
+//				
+//				var number1 = textureLoader.load(fileList[8], createOneSprite);
+//				var number2 = textureLoader.load(fileList[9], createTwoSprite);
+//				var number3 = textureLoader.load(fileList[10], createThreeSprite);
+//				var number4 = textureLoader.load(fileList[11], createFourSprite);
+//				var number5 = textureLoader.load(fileList[12], createFiveSprite);
+//				var number6 = textureLoader.load(fileList[13], createSixSprite);				
+//				var people =textureLoader.load(fileList[14], createPeopleSprite);
+				
+//				var kuang = textureLoader.load("img/0413/kuang.png", createKuangSprite);
+//				cameraOrtho = new THREE.OrthographicCamera( - (canHeight*12/13) / 2, (canHeight*12/13) / 2, canHeight / 2, - canHeight / 2, 1, 1000 );
+				cameraOrtho = new THREE.OrthographicCamera( - canWeight / 2, canWeight / 2, canHeight / 2, - canHeight / 2, 1, 1000 );
+				cameraOrtho.position.z = 500;
+				
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio(window.devicePixelRatio);	
+				renderer.setSize(canWeight, canHeight);
+				renderer.domElement.onmousedown = handleMouseDown;
+
+				renderer.autoClear = false; // To allow render overlay on top of sprited sphere
+				document.getElementById("threejsContainer").appendChild(renderer.domElement);
+				window.addEventListener('resize', onWindowResize, false);
+
+			}
+			//创建UISprite
+			
+			function createFirstSpritess(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				oneSprite = new THREE.Sprite(material);
+				oneSprite.scale.set(width*0.5, height*0.4, 1);
+				scene.add(oneSprite);	
+				oneSprite.name = "canreturn";			
+				oneSprite.position.set(0, 0, 0); // center
+			}
+			
+			function createPeopleSprite(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				peopleSprite = new THREE.Sprite(material);
+				peopleSprite.scale.set(width*0.6, height*0.6, 1);
+				peopleSprite.name = "canreturn";
+				scene.add(peopleSprite);
+				peopleSprite.position.set(canHeight/2.7, -canHeight*1.1, 15); 
+			}
+			
+			function createdTwoSprite(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				twoSprite = new THREE.Sprite(material);
+				twoSprite.name = "door";
+				scene.add(twoSprite);
+				twoSprite.scale.set(width * 0.3, height * 0.3, 1);
+				twoSprite.position.set(-150, 0, 10);
+//				twoSprite.rotation.set (100,-100,100);
+			}
+
+			function createsThreeSprites(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				threeSprite = new THREE.Sprite(material);
+				threeSprite.scale.set(width*0.3, height*0.3, 1);
+				threeSprite.name = "classroom";
+				scene.add(threeSprite);
+				threeSprite.position.set(100, 80, 300); 
+			}
+
+			function createLockSprites(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				lockSprite = new THREE.Sprite(material);
+				lockSprite.name = "canreturn";
+				lockSprite.scale.set(width * 0.5, height * 0.5, 1);
+				scene.add(lockSprite);
+				lockSprite.position.set(-canWeight/1.3,-canHeight/5, 150); // top left
+
+			}
+
+			function createClawSprites(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				clawSprite = new THREE.Sprite(material);
+				clawSprite.scale.set(width*0.5, height*0.5, 1);
+				clawSprite.name = "canreturn";
+				scene.add(clawSprite);
+				clawSprite.position.set(-canWeight/5, -canHeight/0.9, 10); // top left
+			}
+			function createTorchSprites(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				totchSprite = new THREE.Sprite(material);
+				totchSprite.scale.set(width*0.4, height*0.3, 1);
+				scene.add(totchSprite);
+				totchSprite.name = "canreturn";
+				totchSprite.position.set(canHeight/1.4, -canHeight/4, 450); // top left
+			}
+			
+		
+			function createShoeSprites(texture) {
+				var material = new THREE.SpriteMaterial({
+					map: texture
+				});
+
+				var width = material.map.image.width;
+				var height = material.map.image.height;
+				shoeSprite = new THREE.Sprite(material);
+				shoeSprite.scale.set(width * 0.35, height * 0.35, 1);
+				scene.add(shoeSprite);
+				shoeSprite.position.set(canWeight/12, 0, 390); // center
+			}
+						
+			function createOneSprite(texture) {
+					var material = new THREE.SpriteMaterial({
+						map: texture
+					});
+	
+					var width = material.map.image.width;
+					var height = material.map.image.height;
+					oneSprite = new THREE.Sprite(material);
+					oneSprite.scale.set(width*0.15, height*0.15, 1);
+					oneSprite.name = "one";
+					sceneOrtho.add(oneSprite);
+					oneSprite.position.set(-canHeight/6, 0,10);
+					numArray.push(oneSprite);
+			}
+			
+			function createTwoSprite(texture) {
+					var material = new THREE.SpriteMaterial({
+						map: texture
+					});
+	
+					var width = material.map.image.width;
+					var height = material.map.image.height;
+					twoSprite = new THREE.Sprite(material);
+					twoSprite.scale.set(width*0.15, height*0.15, 1);
+					twoSprite.name = "two";
+					sceneOrtho.add(twoSprite);
+					twoSprite.position.set(-canHeight/3,-canHeight/3, 10); // center
+			}
+			
+			function createThreeSprite(texture) {
+					var material = new THREE.SpriteMaterial({
+						map: texture
+					});
+	
+					var width = material.map.image.width;
+					var height = material.map.image.height;
+					threeSprite = new THREE.Sprite(material);
+					threeSprite.scale.set(width*0.15, height*0.15, 1);
+					threeSprite.name = "three";
+					sceneOrtho.add(threeSprite);
+					threeSprite.position.set(-canHeight/10, -canHeight/3, 10); // center
+			}
+			
+			function createFourSprite(texture) {
+					var material = new THREE.SpriteMaterial({
+						map: texture
+					});
+	
+					var width = material.map.image.width;
+					var height = material.map.image.height;
+					fourSprite = new THREE.Sprite(material);
+					fourSprite.center.set(0.5, 0.5);
+					fourSprite.scale.set(width*0.15, height*0.15, 1);
+					fourSprite.name = "four";
+					sceneOrtho.add(fourSprite);
+					fourSprite.position.set(5, -canHeight/3, 10); // center
+			}
+			function createFiveSprite(texture) {
+					var material = new THREE.SpriteMaterial({
+						map: texture
+					});
+	
+					var width = material.map.image.width;
+					var height = material.map.image.height;
+					fiveSprite = new THREE.Sprite(material);
+					fiveSprite.center.set(0.5, 0.5);
+					fiveSprite.scale.set(width*0.15, height*0.15, 1);
+					fiveSprite.name = "five";
+					sceneOrtho.add(fiveSprite);
+					fiveSprite.position.set(canHeight/4, canHeight/6, 10); // center
+			}
+			
+			function createSixSprite(texture) {
+					var material = new THREE.SpriteMaterial({
+						map: texture
+					});
+	
+					var width = material.map.image.width;
+					var height = material.map.image.height;
+					sixSprite = new THREE.Sprite(material);
+					sixSprite.center.set(0.5, 0.5);
+					sixSprite.scale.set(width*0.15, height*0.15, 1);
+					sixSprite.name = "six";
+					sceneOrtho.add(sixSprite);
+					sixSprite.position.set(canHeight/4, canHeight/3.1, 10); // center
+			}
+			
+			//隐藏所有数字
+			function SetAllNumSprite(state){
+				var flag;
+				if(state == "show"){
+					flag = true;
+				}
+				if(state == "hide"){
+					flag = false;			
+				}
+				
+				for(var i =0 ;i<numArray.length;i++){
+					numArray[i].visible = flag;
+				}
+				
+			}
+
+			//射线检测
+			function handleMouseDown(event) {
+
+				//鼠标坐标与three.js
+				mouse.x = (event.clientX / canWeight) * 2 - 1;
+				mouse.y = -(event.clientY / canHeight) * 2 +1;
+
+					raycasterUI.setFromCamera(mouse, camera);
+					console.log("isreturn"+isreturn);
+					var intersects_UI = raycasterUI.intersectObjects(scene.children, true);
+					if(intersects_UI.length > 0) {
+						for(var i = 0; i < intersects_UI.length; i++) {
+
+							console.log(intersects_UI[i].object.name);
+								if(intersects_UI[i].object.name == "door") {
+									if(!isreturn) {								
+										inittween(twoSprite.position.x, twoSprite.position.y, 300);
+										isreturn = true;
+									} 
+									else{
+										inittween(0, 0, 1000);
+										isreturn = false;
+									}
+								} 
+								else if(intersects_UI[i].object.name == "two") {
+									if(!isreturn) {
+										isreturn=true;								
+										inittween(intersects_UI[i].object.position.x-80, intersects_UI[i].object.position.y-100, 700,"img/cssImage/4.png","img/cssImage/10.png");
+									} 
+								} else if(intersects_UI[i].object.name == "three") {
+									if(!isreturn) {									
+										isreturn =true;
+										inittween(clawSprite.position.x, clawSprite.position.y, 350);
+									} 							
+								}else if(intersects_UI[i].object.name == "four") {
+									if(!isreturn) {							
+										isreturn =true;
+										inittween(peopleSprite.position.x, peopleSprite.position.y, 350);
+
+									} 							
+								}								
+								else if(intersects_UI[i].object.name == "classroom") {
+									if(!isreturn) {										
+										isreturn =true;
+										inittween(threeSprite.position.x, threeSprite.position.y, 600);
+									}else{
+										isreturn =false;
+										inittween(0, 0, 1000);
+									}
+								}
+								
+								else if(intersects_UI[i].object.name == "six") {
+									if(!isreturn) {
+										isreturn =true;
+										SetAllNumSprite("hide");
+										inittween(intersects_UI[i].object.position.x+250, intersects_UI[i].object.position.y+300, 350);
+		
+									} 							
+								}
+							}
+						}
+					console.log("放大");
+			}
+			
+			//doween移动相机
+			function inittween(x, y, z) {
+				var option = {
+					px: camera.position.x,
+					py: camera.position.y,
+					pz: camera.position.z
+				};
+
+				var tween = new TWEEN.Tween(option)
+					.to({
+						px: x,
+						py: y,
+						pz: z
+					}, 500)
+					.onUpdate(function() {
+						camera.position.x = this.px;
+						camera.position.y = this.py;
+						camera.position.z = this.pz;
+					})
+					.delay(200)
+					.start()
+					.onComplete(function() {
+//						$("#contextImage").attr("src",imgpath1);
+//						$("#scanImage").attr("src",imgpath2);
+//						if(!isreturn){
+//							SetAllNumSprite("show");
+//						}
+					});
+			}
+
+			function onWindowResize() {
+				camera.aspect = 1;
+				camera.updateProjectionMatrix();
+				renderer.setSize(canWeight, canHeight);
+			}
+
+			function animate() {
+				TWEEN.update();
+				requestAnimationFrame(animate);
+				render();
+			}
+
+			function render() {
+				renderer.clear();
+				renderer.render(scene, camera);
+				renderer.render( sceneOrtho, cameraOrtho );
+				renderer.clearDepth();
+
+			}
+			
+			function OnClickButton(){
+				if(isreturn){
+					inittween(0, 0, 1000,"img/cssImage/2.png","img/cssImage/9.png");
+//					SetAllNumSprite("show");
+
+					isreturn = false;
+				}
+			}
+			
+		</script>
+		<script src="js/jquery-3.3.1.min.js"></script>
+	</body>
+
+</html>
